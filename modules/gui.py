@@ -431,7 +431,7 @@ class ChatWindow(QMainWindow):
             animation.setEndValue(button.geometry().adjusted(2, 2, -2, -2))
         
         # Start the animation and clean up when done
-        animation.start(QAbstractAnimation.DeleteWhenStopped)
+        animation.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
     
     def init_ui(self):
         """
@@ -458,42 +458,37 @@ class ChatWindow(QMainWindow):
         # Input area
         self.input_box = QTextEdit()
         self.input_box.setMaximumHeight(100)
-        main_grid.addWidget(self.input_box, 1, 0, 2, 2)  # Row 1-2, Column 0-1, spans 2 rows and 2 columns
+        main_grid.addWidget(self.input_box, 1, 0, 1, 3)  # Row 1, Column 0-2, spans 3 columns
         
-        # Buttons in a vertical layout on the right
-        button_layout = QVBoxLayout()
+        # Buttons in a horizontal layout below the input box
+        button_layout = QHBoxLayout()
         button_layout.setSpacing(10)
         
-        # Send button
-        self.send_button = QPushButton("Send")
-        self.send_button.clicked.connect(self.send_message)
-        button_layout.addWidget(self.send_button)
+        # Create and add buttons to the horizontal layout
+        buttons = [
+            ("Send", self.send_message, 100),
+            ("Save Chat", self.save_chat, 100),
+            ("Open File", self.open_file, 100),
+            ("Clear Chat", self.clear_chat, 100),
+            ("Web Search", self.web_search, 100)
+        ]
         
-        # Save button
-        self.save_button = QPushButton("Save Chat")
-        self.save_button.clicked.connect(self.save_chat)
-        button_layout.addWidget(self.save_button)
+        for text, handler, width in buttons:
+            button = QPushButton(text)
+            button.clicked.connect(handler)
+            if width:
+                button.setMinimumWidth(width)
+            button_layout.addWidget(button)
         
-        # Open button
-        self.open_button = QPushButton("Open File")
-        self.open_button.clicked.connect(self.open_file)
-        button_layout.addWidget(self.open_button)
-        
-        # Clear button
-        self.clear_button = QPushButton("Clear Chat")
-        self.clear_button.clicked.connect(self.clear_chat)
-        button_layout.addWidget(self.clear_button)
-        
-        # Web search button
-        self.web_search_button = QPushButton("Web Search")
-        self.web_search_button.clicked.connect(self.web_search)
-        button_layout.addWidget(self.web_search_button)
-        
-        # Add stretch to push buttons to the top
+        # Add stretch to distribute buttons evenly
         button_layout.addStretch()
         
-        # Add button layout to grid
-        main_grid.addLayout(button_layout, 1, 2, 2, 1)  # Row 1-2, Column 2, spans 2 rows
+        # Create a container widget for the button layout
+        button_container = QWidget()
+        button_container.setLayout(button_layout)
+        
+        # Add button container to grid (below input box, full width)
+        main_grid.addWidget(button_container, 2, 0, 1, 3)  # Row 2, Column 0-2, spans 3 columns
         
         # Progress bar at the bottom
         self.progress_bar = QProgressBar()
