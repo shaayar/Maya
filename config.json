@@ -1,0 +1,5 @@
+{
+    "model": "gpt-4o",
+    "max_tokens": 2000,
+    "max_messages": 20
+}
