@@ -3,19 +3,23 @@ import logging
 from PyQt6.QtWidgets import (QWidget, QMainWindow, QMenuBar, QMenu, QStatusBar,
                             QVBoxLayout, QTextBrowser, QTextEdit, QPushButton,
                             QMessageBox, QProgressBar, QHBoxLayout, QFileDialog,
-                            QInputDialog, QComboBox, QDialog, QGridLayout)
-from PyQt6.QtCore import Qt, QEvent, pyqtSignal, QUrl, QCoreApplication, QPropertyAnimation, QAbstractAnimation
-from PyQt6.QtGui import QDesktopServices, QAction
-from typing import Optional, Tuple, Dict, Any
+                            QInputDialog, QComboBox, QDialog, QGridLayout, QDockWidget,
+                            QLabel, QVBoxLayout, QHBoxLayout)
+from PyQt6.QtCore import Qt, QEvent, pyqtSignal, QUrl, QCoreApplication, QPropertyAnimation, QAbstractAnimation, QTimer
+from PyQt6.QtGui import QDesktopServices, QAction, QIcon, QPixmap
+from typing import Optional, Tuple, Dict, Any, List
+import os
+import sys
 
-from .datetime_utils import get_greeting
-from .file_operations import FileManager
+from .file_manager import FileManager
 from .web_browser import WebBrowser
 from .settings_dialog import SettingsDialog
 from .config import load_config
 from .styles import get_styles
+from .utils import get_greeting
+from .todo import TodoList, TodoWidget
+from .voice import VoiceAssistant
 
-# Update the ChatWindow class to inherit from QMainWindow
 class ChatWindow(QMainWindow):
     """Main chat window UI."""
     
@@ -56,15 +60,41 @@ class ChatWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
         
-        # Create menu bar
-        self.create_menu_bar()
+        # Initialize Todo List
+        self.todo_list = TodoList()
         
-        # Create status bar
+        # Initialize Voice Assistant
+        self.voice_assistant = VoiceAssistant(wake_word="hey maya")
+        self.voice_assistant.wake_word_detected.connect(self.on_wake_word_detected)
+        self.voice_assistant.speech_recognized.connect(self.on_speech_recognized)
+        self.voice_assistant.error_occurred.connect(self.on_voice_error)
+        self.voice_assistant.listening_changed.connect(self.on_listening_changed)
+        self.voice_assistant.listen_in_background()
+        
+        # Create menu bar and status bar
+        self.create_menu_bar()
         self.statusBar().showMessage("Ready")
         
-        # Chat display
+        # Voice status indicator
+        self.voice_status_label = QLabel()
+        self.voice_status_label.setFixedSize(16, 16)
+        self.voice_status_label.setToolTip("Voice status")
+        self.update_voice_status(False)
+        
+        # Add voice status to status bar
+        self.statusBar().addPermanentWidget(self.voice_status_label)
+        
+        # Chat display area (takes most of the space)
         self.chat_display = QTextBrowser()
         layout.addWidget(self.chat_display)
+        
+        # Create Todo Dock Widget
+        self.todo_dock = QDockWidget("To-Do List", self)
+        self.todo_dock.setWidget(TodoWidget(self.todo_list))
+        self.todo_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
+                                  QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.todo_dock)
+        self.todo_dock.setVisible(False)  # Hidden by default
         
         # Input area
         input_layout = QHBoxLayout()
@@ -119,6 +149,23 @@ class ChatWindow(QMainWindow):
         settings_action.setStatusTip('Configure application settings')  # Tooltip
         file_menu.addAction(settings_action)
         
+        # Add To-Do List toggle
+        self.todo_action = QAction('Show &To-Do List', self, checkable=True)
+        self.todo_action.triggered.connect(self.toggle_todo_list)
+        self.todo_action.setStatusTip('Show/Hide the To-Do List')
+        file_menu.addAction(self.todo_action)
+        
+        # Voice menu
+        voice_menu = menubar.addMenu('&Voice')
+        
+        # Toggle voice listening
+        self.toggle_voice_action = QAction('Enable Voice Control', self, checkable=True, checked=True)
+        self.toggle_voice_action.triggered.connect(self.toggle_voice_control)
+        voice_menu.addAction(self.toggle_voice_action)
+        
+        # Add separator
+        file_menu.addSeparator()
+        
         # Add Exit option to File menu with keyboard shortcut
         exit_action = QAction('E&xit', self)  # Alt+X shortcut
         exit_action.setShortcut('Ctrl+Q')  # Additional shortcut
@@ -141,7 +188,8 @@ class ChatWindow(QMainWindow):
         Display the settings dialog and handle the result.
         If settings are accepted and API key is valid, (re)initialize the chatbot.
         """
-        dialog = SettingsDialog(self)
+        dialog = SettingsDialog(self, self.voice_assistant)
+        dialog.settings_updated.connect(self.on_settings_updated)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             if self.check_api_key():
                 # Reinitialize chatbot if API key is valid
@@ -150,8 +198,12 @@ class ChatWindow(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Error",
-                    "Invalid API key. Please check your settings."
-                )
+                    "Invalid API key. Please check your settings.")
+    
+    def on_settings_updated(self, settings):
+        """Handle settings updates from the settings dialog."""
+        # Voice settings are already applied in the dialog
+        pass
     
     def init_chatbot(self):
         """
@@ -371,6 +423,54 @@ class ChatWindow(QMainWindow):
                 error_msg = f"Failed to perform search: {str(e)}"
                 QMessageBox.critical(self, "Error", error_msg)
     
+    def toggle_todo_list(self, checked):
+        """
+        Toggle the visibility of the To-Do List dock widget.
+        
+        Args:
+            checked: Whether the action is checked
+        """
+        self.todo_dock.setVisible(checked)
+        self.todo_action.setText('Hide &To-Do List' if checked else 'Show &To-Do List')
+    
+    # Voice Assistant Methods
+    def on_wake_word_detected(self):
+        """Handle wake word detection."""
+        self.statusBar().showMessage("Wake word detected! How can I help you?", 3000)
+        self.update_voice_status(True)
+        
+    def on_speech_recognized(self, text):
+        """Handle recognized speech."""
+        self.statusBar().showMessage(f"Recognized: {text}", 3000)
+        self.input_box.setPlainText(text)
+        self.send_message()
+        
+    def on_voice_error(self, error_msg):
+        """Handle voice assistant errors."""
+        self.statusBar().showMessage(error_msg, 5000)
+        
+    def on_listening_changed(self, is_listening):
+        """Update UI when listening state changes."""
+        self.update_voice_status(is_listening)
+        
+    def update_voice_status(self, is_listening):
+        """Update the voice status indicator."""
+        if is_listening:
+            self.voice_status_label.setPixmap(QPixmap(":/icons/microphone-on.png").scaled(16, 16))
+            self.voice_status_label.setToolTip("Listening...")
+        else:
+            self.voice_status_label.setPixmap(QPixmap(":/icons/microphone-off.png").scaled(16, 16))
+            self.voice_status_label.setToolTip("Voice control active")
+    
+    def toggle_voice_control(self, enabled):
+        """Enable or disable voice control."""
+        if enabled:
+            self.voice_assistant.listen_in_background()
+            self.statusBar().showMessage("Voice control enabled", 2000)
+        else:
+            self.voice_assistant.stop()
+            self.statusBar().showMessage("Voice control disabled", 2000)
+    
     def closeEvent(self, event):
         """
         Handle the window close event.
@@ -390,6 +490,12 @@ class ChatWindow(QMainWindow):
         
         # Process user's choice
         if reply == QMessageBox.StandardButton.Yes:
+            # Save todo list before closing
+            if hasattr(self, 'todo_list'):
+                self.todo_list.save()
+            # Stop voice assistant
+            if hasattr(self, 'voice_assistant'):
+                self.voice_assistant.stop()
             # Close the application
             event.accept()
         else:
@@ -432,34 +538,6 @@ class ChatWindow(QMainWindow):
         
         # Start the animation and clean up when done
         animation.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
-    
-    def init_ui(self):
-        """
-        Initialize the main window's user interface with a grid layout.
-        Sets up all UI components including chat display, input area, and buttons.
-        """
-        # Create and set up the central widget that will contain all UI elements
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        # Configure the main grid layout with consistent spacing and margins
-        main_grid = QGridLayout(central_widget)
-        main_grid.setSpacing(10)  # Space between widgets
-        main_grid.setContentsMargins(10, 10, 10, 10)  # Margins around the grid (left, top, right, bottom)
-        
-        # Create menu bar and status bar
-        self.create_menu_bar()
-        self.statusBar().showMessage("Ready")
-        
-        # Chat display area (takes most of the space)
-        self.chat_display = QTextBrowser()
-        main_grid.addWidget(self.chat_display, 0, 0, 1, 3)  # Row 0, Column 0-2, spans 3 columns
-        
-        # Input area
-        self.input_box = QTextEdit()
-        self.input_box.setMaximumHeight(100)
-        main_grid.addWidget(self.input_box, 1, 0, 1, 3)  # Row 1, Column 0-2, spans 3 columns
-        
         # Buttons in a horizontal layout below the input box
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)

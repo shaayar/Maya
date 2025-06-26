@@ -1,5 +1,11 @@
 {
-    "model": "gpt-4o",
+    "model": "llama-3.3-70b-versatile",
     "max_tokens": 2000,
-    "max_messages": 20
+    "max_messages": 20,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assistant."
+        }
+    ]
 }
