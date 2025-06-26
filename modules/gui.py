@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (QWidget, QMainWindow, QMenuBar, QMenu, QStatusBar,
                             QInputDialog, QComboBox, QDialog, QGridLayout, QDockWidget,
                             QLabel, QVBoxLayout, QHBoxLayout)
 from PyQt6.QtCore import Qt, QEvent, pyqtSignal, QUrl, QCoreApplication, QPropertyAnimation, QAbstractAnimation, QTimer
-from PyQt6.QtGui import QDesktopServices, QAction, QIcon, QPixmap
+from PyQt6.QtGui import QDesktopServices, QAction, QIcon, QPixmap, QKeySequence
 from typing import Optional, Tuple, Dict, Any, List
 import os
 import sys
@@ -19,6 +19,7 @@ from .styles import get_styles
 from .utils import get_greeting
 from .todo import TodoList, TodoWidget
 from .voice import VoiceAssistant
+from .file_search_dialog import FileSearchDialog
 
 class ChatWindow(QMainWindow):
     """Main chat window UI."""
@@ -135,13 +136,23 @@ class ChatWindow(QMainWindow):
     def create_menu_bar(self):
         """
         Create and configure the application's menu bar.
-        Adds File menu with Settings and Exit options.
+        Adds File menu with Search, Settings, and Exit options.
         """
         # Get the main menu bar from the main window
         menubar = self.menuBar()
         
         # Create File menu with keyboard shortcut (Alt+F)
         file_menu = menubar.addMenu('&File')
+        
+        # Add File Search option
+        search_action = QAction('&Search Files...', self)
+        search_action.setShortcut(QKeySequence('Ctrl+Shift+F'))
+        search_action.triggered.connect(self.show_file_search)
+        search_action.setStatusTip('Search for files in your project')
+        file_menu.addAction(search_action)
+        
+        # Add separator
+        file_menu.addSeparator()
         
         # Add Settings option to File menu
         settings_action = QAction('&Settings', self)  # & indicates keyboard shortcut (Alt+S)
@@ -162,6 +173,15 @@ class ChatWindow(QMainWindow):
         self.toggle_voice_action = QAction('Enable Voice Control', self, checkable=True, checked=True)
         self.toggle_voice_action.triggered.connect(self.toggle_voice_control)
         voice_menu.addAction(self.toggle_voice_action)
+        
+        # Add Help menu
+        help_menu = menubar.addMenu('&Help')
+        
+        # Add Features option to Help menu
+        features_action = QAction('&Features', self)
+        features_action.triggered.connect(self.show_features)
+        features_action.setStatusTip('View features and roadmap')
+        help_menu.addAction(features_action)
         
         # Add separator
         file_menu.addSeparator()
@@ -448,19 +468,20 @@ class ChatWindow(QMainWindow):
     def on_voice_error(self, error_msg):
         """Handle voice assistant errors."""
         self.statusBar().showMessage(error_msg, 5000)
-        
+    
     def on_listening_changed(self, is_listening):
         """Update UI when listening state changes."""
         self.update_voice_status(is_listening)
-        
+    
     def update_voice_status(self, is_listening):
         """Update the voice status indicator."""
         if is_listening:
-            self.voice_status_label.setPixmap(QPixmap(":/icons/microphone-on.png").scaled(16, 16))
-            self.voice_status_label.setToolTip("Listening...")
-        else:
-            self.voice_status_label.setPixmap(QPixmap(":/icons/microphone-off.png").scaled(16, 16))
+            self.voice_status_label.setPixmap(QPixmap("resources/icons/mic_on.png"))
             self.voice_status_label.setToolTip("Voice control active")
+        else:
+            self.voice_status_label.setPixmap(QPixmap("resources/icons/mic_off.png"))
+            self.voice_status_label.setToolTip("Voice control inactive")
+            self.voice_status_label.setToolTip("Voice control inactive")
     
     def toggle_voice_control(self, enabled):
         """Enable or disable voice control."""

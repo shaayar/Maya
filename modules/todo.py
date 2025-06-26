@@ -437,6 +437,13 @@ class TodoWidget(QWidget):
         self.delete_btn = QPushButton("Delete")
         self.delete_btn.clicked.connect(self.delete_selected)
         
+        self.toggle_btn = QPushButton("Toggle Complete")
+        self.toggle_btn.clicked.connect(self.toggle_complete)
+        
+        # Add buttons to the button layout
+        btn_layout.addWidget(self.delete_btn)
+        btn_layout.addWidget(self.toggle_btn)
+        
         # Status bar at the bottom
         status_layout = QHBoxLayout()
         self.status_label = QLabel("No tasks")
@@ -445,19 +452,9 @@ class TodoWidget(QWidget):
         # Add stretch to push status to the right
         status_layout.addStretch()
         
-        # Add buttons to the button layout
-        btn_layout.addWidget(self.delete_btn)
-        
-        # Add layouts to main layout
+        # Add all layouts to main layout
         layout.addLayout(btn_layout)
         layout.addLayout(status_layout)
-        btn_layout.addWidget(self.delete_btn)
-        
-        self.toggle_btn = QPushButton("Toggle Complete")
-        self.toggle_btn.clicked.connect(self.toggle_complete)
-        btn_layout.addWidget(self.toggle_btn)
-        
-        layout.addLayout(btn_layout)
     
     def get_filtered_tasks(self):
         """Get tasks filtered by current filter settings."""

@@ -35,7 +35,14 @@ class Notifier(QObject):
         """Initialize the system tray icon."""
         if not self.tray_icon:
             self.tray_icon = QSystemTrayIcon()
-            self.tray_icon.setIcon(QIcon(":/icons/app_icon.png"))
+            
+            # Load icon from filesystem
+            icon_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'icons', 'app_icon.png')
+            if os.path.exists(icon_path):
+                self.tray_icon.setIcon(QIcon(icon_path))
+            else:
+                # Fallback to system icon if file not found
+                self.tray_icon.setIcon(QApplication.windowIcon())
             
             # Create the system tray menu
             menu = QMenu()

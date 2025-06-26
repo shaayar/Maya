@@ -6,15 +6,34 @@ class Chatbot:
     """Handles chat functionality with Groq API."""
     
     def __init__(self, config: Dict[str, Any]):
-        """Initialize the chatbot with configuration."""
+        """
+        Initialize the chatbot with configuration.
+        
+        Args:
+            config: Dictionary containing configuration including:
+                   - model: The model to use
+                   - max_tokens: Maximum tokens per response
+                   - temperature: Sampling temperature (0.0 to 1.0)
+                   - messages: List of message dictionaries with role and content
+        """
         self.config = config
         self.client = Groq(api_key=get_api_key())
-        self.messages = [
+        
+        # Initialize messages with system message from config or default
+        self.messages = config.get('messages', [
             {
                 "role": "system",
                 "content": "You are MAYA, a helpful AI assistant. Keep your responses concise and to the point."
             }
-        ]
+        ])
+        
+        # Ensure we have at least one system message
+        if not any(msg.get('role') == 'system' for msg in self.messages):
+            self.messages.insert(0, {
+                "role": "system",
+                "content": "You are MAYA, a helpful AI assistant."
+            })
+            
         self.conversation_history = []
     
     def get_response(self, user_input: str) -> str:
@@ -33,9 +52,9 @@ class Chatbot:
             # Get response from Groq
             response = self.client.chat.completions.create(
                 messages=context_messages,
-                model=self.config['model'],
-                max_tokens=self.config['max_tokens'],
-                temperature=0.7,
+                model=self.config.get('model', 'llama-3.3-70b-versatile'),
+                max_tokens=self.config.get('max_tokens', 2000),
+                temperature=float(self.config.get('temperature', 0.7)),
                 stream=False
             )
             

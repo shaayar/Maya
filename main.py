@@ -10,13 +10,6 @@ def setup_environment():
     project_root = os.path.dirname(os.path.abspath(__file__))
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
-    
-    # Import the compiled resources
-    try:
-        import resources_rc  # This will be generated after compiling resources
-    except ImportError:
-        print("Warning: Resource file not found. Icons may not display correctly.")
-        print("Run 'python compile_resources.py' to generate the resource file.")
 
 def main():
     # Set up the environment
