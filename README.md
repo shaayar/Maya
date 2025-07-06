@@ -190,6 +190,138 @@ QMainWindow {
 """
 ```
 
+## 🧩 Module Usage
+
+This section explains how to access and use different modules in the MAYA AI Chatbot codebase.
+
+### Core Modules
+
+#### 1. File Operations (`file_manager.py`, `file_operations.py`)
+```python
+# Import
+from modules.file_manager import FileManager
+
+# Initialize
+file_manager = FileManager()
+
+# Create a file
+file_manager.create_file("example.txt", "Content")
+
+# Read a file
+content = file_manager.read_file("example.txt")
+# Search files
+results = file_manager.search_files("*.py", "/path/to/search")
+```
+
+#### 2. Voice Assistant (`voice.py`, `speech_recognition.py`)
+```python
+# From main GUI
+self.voice_assistant.toggle_listening()  # Toggle voice input
+self.voice_assistant.speak("Hello")     # Text-to-speech
+
+# Check status
+if self.voice_assistant.is_listening:
+    print("Voice is active")
+
+# Handle speech recognition
+self.voice_assistant.speech_recognized.connect(self.handle_speech)
+```
+
+#### 3. Screen Reader (`screen_reader.py`)
+```python
+# Enable/disable
+self.screen_reader.set_enabled(True)
+
+# Speak text
+self.screen_reader.speak("Screen reader is active")
+
+# Check status
+if self.screen_reader.is_enabled():
+    print("Screen reader is on")
+```
+
+#### 4. Chatbot (`chatbot.py`)
+```python
+# Send message and get response
+response = self.chatbot.generate_response("Hello")
+
+# Get conversation history
+history = self.chatbot.get_conversation_history()
+
+# Clear history
+self.chatbot.clear_history()
+```
+
+### Utility Modules
+
+#### 1. Configuration (`config.py`)
+```python
+from modules.config import load_config, save_config
+
+# Load config
+config = load_config()
+
+# Get/set values
+model = config.get('model', 'default_model')
+config['new_setting'] = 'value'
+
+# Save changes
+save_config(config)
+```
+
+#### 2. Web Browser (`web_browser.py`)
+```python
+from modules.web_browser import WebBrowser
+
+browser = WebBrowser()
+browser.open_url("https://example.com")
+title = browser.get_page_title()
+```
+
+### Common Patterns
+
+#### Sending Messages
+```python
+# Get input
+message = self.input_box.toPlainText().strip()
+if message:
+    # Clear input
+    self.input_box.clear()
+    # Display in chat
+    self.chat_display.append(f"You: {message}")
+    # Process and get response
+    response = self.chatbot.generate_response(message)
+    self.chat_display.append(f"MAYA: {response}")
+```
+
+#### Error Handling
+```python
+try:
+    # Operation that might fail
+    result = self.file_manager.read_file("important.txt")
+except Exception as e:
+    # Show error to user
+    self.statusBar().showMessage(f"Error: {str(e)}", 5000)
+    # Speak error if screen reader is active
+    if hasattr(self, 'screen_reader') and self.screen_reader.is_enabled():
+        self.screen_reader.speak(f"Error: {str(e)}")
+```
+
+### Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Send Message | `Ctrl+Return` |
+| Save Chat | `Ctrl+S` |
+| Open File | `Ctrl+O` |
+| Clear Chat | `Ctrl+L` |
+| Web Search | `Ctrl+W` |
+| Toggle Screen Reader | `Ctrl+Alt+R` |
+| Read Current Element | `Ctrl+Alt+C` |
+| Increase Text Size | `Ctrl++` |
+| Decrease Text Size | `Ctrl+-` |
+| Reset Text Size | `Ctrl+0` |
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:

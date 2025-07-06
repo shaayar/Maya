@@ -1,0 +1,117 @@
+/* Default MAYA AI Theme */
+
+/* Main Window */
+QMainWindow {
+    background-color: #f5f5f5;
+}
+
+/* Chat Display */
+QTextBrowser {
+    background-color: #ffffff;
+    color: #333333;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+/* Input Area */
+QTextEdit {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #357abd;
+}
+
+QPushButton:pressed {
+    background-color: #2a5d8a;
+}
+
+/* Tabs */
+QTabBar::tab {
+    background: #e0e0e0;
+    border: 1px solid #cccccc;
+    padding: 8px 16px;
+    margin-right: 2px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+QTabBar::tab:selected {
+    background: #ffffff;
+    border-bottom-color: #ffffff;
+    margin-bottom: -1px;
+}
+
+/* Terminal */
+QPlainTextEdit#terminal {
+    background-color: #1e1e1e;
+    color: #f0f0f0;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    border: 1px solid #333333;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    border: none;
+    background: #f0f0f0;
+    width: 12px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    min-height: 20px;
+    border-radius: 6px;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* Menu Bar */
+QMenuBar {
+    background-color: #f0f0f0;
+    color: #333333;
+    padding: 4px;
+}
+
+QMenuBar::item:selected {
+    background-color: #e0e0e0;
+    border-radius: 4px;
+}
+
+/* Status Bar */
+QStatusBar {
+    background-color: #f0f0f0;
+    color: #666666;
+    border-top: 1px solid #dddddd;
+}
+
+/* Custom Widgets */
+#voiceStatus {
+    qproperty-pixmap: url(:/icons/voice_off.png);
+}
+
+#voiceStatus.listening {
+    qproperty-pixmap: url(:/icons/voice_on.png);
+}

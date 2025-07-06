@@ -228,15 +228,25 @@ class TodoList(QObject):
             todo_categories = {todo.category for todo in self.todos if todo.category}
             self.categories.update(todo_categories)
             
-            data = {
-                'todos': [todo.to_dict() for todo in self.todos],
-                'categories': list(self.categories),
-                'saved_at': datetime.now().isoformat()
-            }
             with open(self.storage_file, 'w') as f:
+                data = {
+                    'todos': [todo.to_dict() for todo in self.todos],
+                    'categories': list(self.categories),
+                    'saved_at': datetime.now().isoformat()
+                }
                 json.dump(data, f, indent=2)
-        except IOError as e:
-            print(f"Error saving todos: {e}")
+            self.data_changed.emit()
+        except Exception as e:
+            logging.error(f"Error saving todos: {e}")
+    
+    def count(self) -> int:
+        """
+        Get the number of to-do items in the list.
+        
+        Returns:
+            int: The number of to-do items
+        """
+        return len(self.todos)
 
 
 class TodoDialog(QDialog):
@@ -711,38 +721,36 @@ class TodoWidget(QWidget):
     
     def check_reminders(self):
         """Check for tasks with upcoming reminders and trigger notifications."""
-        # This method is called periodically by the reminder_timer
-        # It checks for tasks that need reminders and triggers notifications
-        upcoming = self.todo_list.get_upcoming_reminders()
-        for todo in upcoming:
-            # Create a todo_data dictionary for the handle_reminder method
-            todo_data = {
-                "title": todo.title,
-                "due_date": todo.due_date,
-                "reminder": todo.reminder,
-                "description": todo.description,
-                "priority": todo.priority,
-                "category": todo.category,
-                "completed": todo.completed
-            }
-            # Trigger the reminder
-            self.handle_reminder(todo_data)
-        
-        if todo:
-            # Emit our own signal for UI updates
-            self.reminder_triggered.emit(todo)
+        for i in range(self.todo_list.count()):
+            todo = self.todo_list.get(i)
+            if todo and todo.needs_reminder():
+                # Create a dictionary with the todo item data
+                todo_data = {
+                    "title": todo.title,
+                    "due_date": todo.due_date,
+                    "reminder": todo.reminder,
+                    "description": todo.description,
+                    "priority": todo.priority,
+                    "category": todo.category,
+                    "completed": todo.completed
+                }
+                # Trigger the reminder
+                self.handle_reminder(todo_data)
+                
+                # Emit our own signal for UI updates
+                self.reminder_triggered.emit(todo)
+                
+                # Optionally show a message box
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("MAYA Reminder")
+                msg.setText(f"Reminder: {todo.title}")
             
-            # Optionally show a message box
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Icon.Information)
-            msg.setWindowTitle("MAYA Reminder")
-            msg.setText(f"Reminder: {todo.title}")
+                if todo.due_date:
+                    msg.setInformativeText(f"Due: {format_date(todo.due_date)}")
             
-            if todo.due_date:
-                msg.setInformativeText(f"Due: {format_date(todo.due_date)}")
-            
-            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-            msg.exec()
+                msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msg.exec()
     
     def edit_todo(self, item):
         """Edit the selected to-do item."""
