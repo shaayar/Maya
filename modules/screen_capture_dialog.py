@@ -439,54 +439,108 @@ class ScreenCaptureDialog(QMainWindow):
         if self.selection_rect.isNull() or self.background_pixmap is None:
             return
         
-        # Show wait cursor
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        # Create and show loading dialog
+        loading_dialog = QDialog(self)
+        loading_dialog.setWindowTitle("Extracting Text...")
+        loading_dialog.setFixedSize(300, 100)
+        loading_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         
-        try:
-            # Extract the selected region
-            selected_region = self.background_pixmap.copy(self.selection_rect)
+        layout = QVBoxLayout(loading_dialog)
+        layout.addWidget(QLabel("Extracting text, please wait..."))
+        
+        # Add a cancel button
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(loading_dialog.reject)
+        layout.addWidget(cancel_btn)
+        
+        # Show the dialog immediately
+        loading_dialog.show()
+        QApplication.processEvents()
+        
+        # Flag to track if operation was cancelled
+        self.ocr_cancelled = False
+        
+        def run_ocr():
+            try:
+                # Extract the selected region
+                selected_region = self.background_pixmap.copy(self.selection_rect)
+                
+                # Convert QPixmap to PIL Image
+                qimage = selected_region.toImage()
+                buffer = qimage.bits().asstring(qimage.sizeInBytes())
+                pil_image = Image.frombytes(
+                    'RGBA', 
+                    (qimage.width(), qimage.height()), 
+                    buffer, 
+                    'raw', 'RGBA'
+                )
+                
+                # Get selected language
+                lang = self.lang_combo.currentData()
+                
+                # Check if dialog was closed
+                if not loading_dialog.isVisible():
+                    return
+                
+                # Extract text using OCR
+                text, metadata = self.ocr_processor.extract_text(
+                    pil_image,
+                    config={
+                        'lang': lang,
+                        'preprocess': True,
+                        'contrast_factor': 1.5,
+                        'sharpen': True,
+                        'denoise': True,
+                        'threshold': True
+                    }
+                )
+                
+                # Check if dialog was closed
+                if not loading_dialog.isVisible():
+                    return
+                
+                # Show the extracted text in a dialog
+                self.show_ocr_result(text, metadata)
+                
+            except pytesseract.TesseractNotFoundError:
+                if loading_dialog.isVisible():
+                    loading_dialog.reject()
+                self.show_ocr_install_instructions()
+                
+            except Exception as e:
+                if loading_dialog.isVisible():
+                    loading_dialog.reject()
+                QMessageBox.critical(
+                    self, 
+                    "OCR Error", 
+                    f"Error extracting text: {str(e)}\n\n"
+                    "Please check that Tesseract OCR is properly installed and in your system PATH."
+                )
+                logger.error(f"OCR extraction failed: {str(e)}", exc_info=True)
+                
+            finally:
+                if loading_dialog.isVisible():
+                    loading_dialog.accept()
+        
+        # Run OCR in a separate thread to keep the UI responsive
+        from PyQt6.QtCore import QThread, pyqtSignal
+        
+        class OCRThread(QThread):
+            finished = pyqtSignal()
             
-            # Convert QPixmap to PIL Image
-            qimage = selected_region.toImage()
-            buffer = qimage.bits().asstring(qimage.sizeInBytes())
-            pil_image = Image.frombytes(
-                'RGBA', 
-                (qimage.width(), qimage.height()), 
-                buffer, 
-                'raw', 'RGBA'
-            )
-            
-            # Get selected language
-            lang = self.lang_combo.currentData()
-            
-            # Extract text using OCR
-            text, metadata = self.ocr_processor.extract_text(
-                pil_image,
-                config={
-                    'lang': lang,
-                    'preprocess': True,
-                    'contrast_factor': 1.5,
-                    'sharpen': True,
-                    'denoise': True,
-                    'threshold': True
-                }
-            )
-            
-            # Show the extracted text in a dialog
-            self.show_ocr_result(text, metadata)
-            
-        except Exception as e:
-            QMessageBox.critical(
-                self, 
-                "OCR Error", 
-                f"Error extracting text: {str(e)}\n\n"
-                "Make sure Tesseract OCR is installed and in your system PATH."
-            )
-            logger.error(f"OCR extraction failed: {str(e)}")
-            
-        finally:
-            # Restore cursor
-            QApplication.restoreOverrideCursor()
+            def run(self):
+                run_ocr()
+                self.finished.emit()
+        
+        self.ocr_thread = OCRThread()
+        self.ocr_thread.finished.connect(loading_dialog.accept)
+        self.ocr_thread.start()
+        
+        # Show the dialog and wait for it to be closed
+        if loading_dialog.exec() == QDialog.DialogCode.Rejected:
+            self.ocr_cancelled = True
+            self.ocr_thread.terminate()
+            self.ocr_thread.wait()
     
     def show_ocr_result(self, text: str, metadata: dict):
         """Display the OCR results in a dialog."""
@@ -559,27 +613,69 @@ class ScreenCaptureDialog(QMainWindow):
         
         if 'windows' in system:
             instructions = install_tesseract_windows()
+            download_url = "https://github.com/UB-Mannheim/tesseract/wiki"
         elif 'darwin' in system:
             instructions = install_tesseract_macos()
+            download_url = "https://formulae.brew.sh/formula/tesseract"
         else:  # Linux and others
             instructions = install_tesseract_linux()
+            if 'ubuntu' in platform.version().lower() or 'debian' in platform.version().lower():
+                download_url = "https://tesseract-ocr.github.io/tessdoc/Installation.html#linux"
+            else:
+                download_url = "https://tesseract-ocr.github.io/tessdoc/Home.html"
         
         # Show instructions in a dialog
         dialog = QDialog(self)
         dialog.setWindowTitle("Install Tesseract OCR")
-        dialog.setMinimumSize(600, 400)
+        dialog.setMinimumSize(650, 500)
         
         layout = QVBoxLayout(dialog)
         
-        # Add instructions
+        # Add header
+        header = QLabel("<h3>Tesseract OCR Installation Required</h3>")
+        header.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(header)
+        
+        # Add description
+        description = QLabel(
+            "Tesseract OCR is required for text recognition. Please install it using the instructions below:"
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+        
+        # Add download button
+        download_btn = QPushButton(f"Download Tesseract for {platform.system()}")
+        download_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(download_url)))
+        layout.addWidget(download_btn)
+        
+        # Add instructions in a scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        
+        # Add instructions with monospace font
         text_edit = QTextEdit()
+        text_edit.setFontFamily("Courier")
         text_edit.setPlainText(instructions)
         text_edit.setReadOnly(True)
-        layout.addWidget(text_edit)
+        scroll_layout.addWidget(text_edit)
         
-        # Add close button
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        button_box.rejected.connect(dialog.reject)
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
+        
+        # Add buttons
+        button_box = QDialogButtonBox()
+        close_btn = button_box.addButton(QDialogButtonBox.StandardButton.Close)
+        copy_btn = button_box.addButton("Copy Instructions", QDialogButtonBox.ButtonRole.ActionRole)
+        
+        def copy_instructions():
+            QApplication.clipboard().setText(instructions)
+            QMessageBox.information(dialog, "Copied", "Installation instructions copied to clipboard.")
+            
+        copy_btn.clicked.connect(copy_instructions)
+        close_btn.clicked.connect(dialog.reject)
+        
         layout.addWidget(button_box)
         
         # Show the dialog

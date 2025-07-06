@@ -78,9 +78,9 @@ class ChatWindow(QMainWindow):
         self.last_capture = None
         
         # Set up accessibility
-        self.setAccessible(True)
-        self.setAccessibleName("MAYA AI Chat Window")
+        self.setObjectName("chatWindow")  # For accessibility
         self.setAccessibleDescription("Main application window for MAYA AI chatbot")
+        # Note: setAccessible() was removed in PyQt6 as all widgets are accessible by default
         
         # Configure main window properties
         self.setWindowTitle("MAYA")  # Window title
@@ -156,7 +156,7 @@ class ChatWindow(QMainWindow):
         
         # Chat display area (takes most of the space)
         self.chat_display = QTextBrowser()
-        self.chat_display.setAccessibleName("Chat History")
+        self.chat_display.setObjectName("chatDisplay")  # For accessibility
         self.chat_display.setAccessibleDescription("Displays the conversation history")
         self.chat_display.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         layout.addWidget(self.chat_display)
@@ -174,7 +174,7 @@ class ChatWindow(QMainWindow):
         self.input_box = CustomTextEdit()
         self.input_box.setMaximumHeight(100)
         self.input_box.returnPressed.connect(self.send_message)
-        self.input_box.setAccessibleName("Message Input")
+        self.input_box.setObjectName("messageInput")  # For accessibility
         self.input_box.setAccessibleDescription("Type your message here")
         self.input_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         input_layout.addWidget(self.input_box)
@@ -225,7 +225,7 @@ class ChatWindow(QMainWindow):
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setAccessibleName("Progress Bar")
+        self.progress_bar.setObjectName("progressBar")  # For accessibility
         self.progress_bar.setAccessibleDescription("Shows operation progress")
         layout.addWidget(self.progress_bar)
         
@@ -252,19 +252,19 @@ class ChatWindow(QMainWindow):
         """
         # Get the main menu bar from the main window
         menubar = self.menuBar()
-        menubar.setAccessibleName("Menu Bar")
+        menubar.setObjectName("menuBar")  # For accessibility
         
         # Create File menu with keyboard shortcut (Alt+F)
         file_menu = menubar.addMenu('&File')
-        file_menu.setAccessibleName("File Menu")
+        file_menu.setObjectName("fileMenu")  # For accessibility
         
         # Add File Search option
         search_action = QAction('&Search Files...', self)
         search_action.setShortcut(QKeySequence('Ctrl+Shift+F'))
         search_action.triggered.connect(self.show_file_search)
         search_action.setStatusTip('Search for files in your project')
-        search_action.setAccessibleName("Search Files")
-        search_action.setAccessibleDescription("Open file search dialog")
+        search_action.setObjectName("searchFilesAction")  # For accessibility
+        search_action.setToolTip('Search for files in your project')
         file_menu.addAction(search_action)
         
         # Add separator
@@ -274,16 +274,17 @@ class ChatWindow(QMainWindow):
         settings_action = QAction('&Settings', self)  # & indicates keyboard shortcut (Alt+S)
         settings_action.triggered.connect(self.show_settings)
         settings_action.setStatusTip('Configure application settings')
-        settings_action.setShortcut('Ctrl+,')
-        settings_action.setAccessibleName("Settings")
-        settings_action.setAccessibleDescription("Open application settings")
+        settings_action.setShortcut(',')
+        settings_action.setObjectName("settingsAction")  # For accessibility
+        settings_action.setToolTip('Configure application settings')
         file_menu.addAction(settings_action)
         
         # Add To-Do List toggle
         self.todo_action = QAction('Show &To-Do List', self, checkable=True)
         self.todo_action.triggered.connect(self.toggle_todo_list)
         self.todo_action.setStatusTip('Show/Hide the To-Do List')
-        self.todo_action.setAccessibleName("Toggle To-Do List")
+        self.todo_action.setObjectName("todoAction")  # For accessibility
+        self.todo_action.setToolTip("Toggle To-Do List")
         file_menu.addAction(self.todo_action)
         
         # Add separator
@@ -294,18 +295,20 @@ class ChatWindow(QMainWindow):
         exit_action.setShortcut('Ctrl+Q')  # Additional shortcut
         exit_action.triggered.connect(self.close)  # Connect to close handler
         exit_action.setStatusTip('Exit the application')  # Tooltip
-        exit_action.setAccessibleName("Exit Application")
+        exit_action.setObjectName("exitAction")  # For accessibility
+        exit_action.setToolTip("Exit Application")
         file_menu.addAction(exit_action)
         
         # Voice menu
         voice_menu = menubar.addMenu('&Voice')
-        voice_menu.setAccessibleName("Voice Menu")
+        voice_menu.setObjectName("voiceMenu")  # For accessibility
         
         # Toggle voice listening
         self.toggle_voice_action = QAction('Enable Voice Control', self, checkable=True, checked=True)
         self.toggle_voice_action.triggered.connect(self.toggle_voice_control)
         self.toggle_voice_action.setShortcut('Ctrl+Shift+V')
-        self.toggle_voice_action.setAccessibleName("Toggle Voice Control")
+        self.toggle_voice_action.setObjectName("toggleVoiceAction")  # For accessibility
+        self.toggle_voice_action.setToolTip("Toggle Voice Control")
         voice_menu.addAction(self.toggle_voice_action)
         
         # Add Accessibility menu if screen reader is available
@@ -314,19 +317,21 @@ class ChatWindow(QMainWindow):
         
         # Add Help menu
         help_menu = menubar.addMenu('&Help')
-        help_menu.setAccessibleName("Help Menu")
+        help_menu.setObjectName("helpMenu")  # For accessibility
         
         # Add Features option to Help menu
         features_action = QAction('&Features', self)
         features_action.triggered.connect(self.show_features)
         features_action.setStatusTip('View features and roadmap')
-        features_action.setAccessibleName("Features")
+        features_action.setObjectName("featuresAction")  # For accessibility
+        features_action.setToolTip("View features and roadmap")
         help_menu.addAction(features_action)
         
         # Add About option
         about_action = QAction('&About', self)
         about_action.triggered.connect(self.show_about)
-        about_action.setAccessibleName("About")
+        about_action.setObjectName("aboutAction")  # For accessibility
+        about_action.setToolTip("About MAYA AI Chatbot")
         help_menu.addAction(about_action)
     
     def check_api_key(self) -> bool:
@@ -345,28 +350,31 @@ class ChatWindow(QMainWindow):
             return
             
         accessibility_menu = menubar.addMenu('&Accessibility')
-        accessibility_menu.setAccessibleName("Accessibility Menu")
+        accessibility_menu.setObjectName("accessibilityMenu")  # For accessibility
         
         # Screen reader toggle
         self.screen_reader_action = QAction('Enable &Screen Reader', self, checkable=True)
         self.screen_reader_action.setShortcut('Ctrl+Alt+R')
         self.screen_reader_action.toggled.connect(self.toggle_screen_reader)
         self.screen_reader_action.setChecked(self.screen_reader.is_enabled())
-        self.screen_reader_action.setAccessibleName("Toggle Screen Reader")
+        self.screen_reader_action.setObjectName("screenReaderAction")  # For accessibility
+        self.screen_reader_action.setToolTip("Toggle Screen Reader")
         accessibility_menu.addAction(self.screen_reader_action)
         
         # Read current element
         read_current_action = QAction('Read &Current Element', self)
         read_current_action.setShortcut('Ctrl+Alt+C')
         read_current_action.triggered.connect(self.read_current_element)
-        read_current_action.setAccessibleName("Read Current Element")
+        read_current_action.setObjectName("readCurrentAction")  # For accessibility
+        read_current_action.setToolTip("Read Current Element")
         accessibility_menu.addAction(read_current_action)
         
         # Read from cursor
         read_from_cursor_action = QAction('Read from Cu&rsor', self)
         read_from_cursor_action.setShortcut('Ctrl+Alt+Space')
         read_from_cursor_action.triggered.connect(self.read_from_cursor)
-        read_from_cursor_action.setAccessibleName("Read from Cursor")
+        read_from_cursor_action.setObjectName("readFromCursorAction")  # For accessibility
+        read_from_cursor_action.setToolTip("Read from Cursor")
         accessibility_menu.addAction(read_from_cursor_action)
         
         # Add separator
@@ -374,27 +382,30 @@ class ChatWindow(QMainWindow):
         
         # Text size controls
         text_size_menu = accessibility_menu.addMenu('Text &Size')
-        text_size_menu.setAccessibleName("Text Size Options")
+        text_size_menu.setObjectName("textSizeMenu")  # For accessibility
         
         # Increase text size
         increase_text_action = QAction('Zoom &In', self)
         increase_text_action.setShortcut('Ctrl+Plus')
         increase_text_action.triggered.connect(self.increase_text_size)
-        increase_text_action.setAccessibleName("Increase Text Size")
+        increase_text_action.setObjectName("increaseTextAction")  # For accessibility
+        increase_text_action.setToolTip("Increase Text Size")
         text_size_menu.addAction(increase_text_action)
         
         # Decrease text size
         decrease_text_action = QAction('Zoom &Out', self)
         decrease_text_action.setShortcut('Ctrl+Minus')
         decrease_text_action.triggered.connect(self.decrease_text_size)
-        decrease_text_action.setAccessibleName("Decrease Text Size")
+        decrease_text_action.setObjectName("decreaseTextAction")  # For accessibility
+        decrease_text_action.setToolTip("Decrease Text Size")
         text_size_menu.addAction(decrease_text_action)
         
         # Reset zoom
         reset_zoom_action = QAction('&Reset Zoom', self)
         reset_zoom_action.setShortcut('Ctrl+0')
         reset_zoom_action.triggered.connect(self.reset_text_size)
-        reset_zoom_action.setAccessibleName("Reset Text Size")
+        reset_zoom_action.setObjectName("resetZoomAction")  # For accessibility
+        reset_zoom_action.setToolTip("Reset Text Size")
         text_size_menu.addAction(reset_zoom_action)
     
     def toggle_screen_reader(self, enabled: bool):
@@ -479,6 +490,72 @@ class ChatWindow(QMainWindow):
         
         # Update status bar with new size
         self.statusBar().showMessage(f"Text size: {new_chat_size}pt", 2000)
+    
+    def show_file_search(self):
+        """Show the file search dialog."""
+        try:
+            dialog = FileSearchDialog(self, os.getcwd())
+            dialog.file_selected.connect(self.open_file_from_search)
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to open file search: {str(e)}"
+            )
+            logger.error(f"Error in show_file_search: {str(e)}")
+    
+    def open_file_from_search(self, file_path):
+        """Open a file that was selected from the file search dialog."""
+        try:
+            if os.path.isfile(file_path):
+                self.current_file = file_path
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.chat_display.append(f"<b>File: {os.path.basename(file_path)}</b>\n{content}")
+                self.statusBar().showMessage(f"Opened: {file_path}", 3000)
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to open file: {str(e)}"
+            )
+            logger.error(f"Error opening file from search: {str(e)}")
+    
+    def show_features(self):
+        """Show the features dialog with current and planned features."""
+        features_text = """
+        <h2>MAYA AI Features</h2>
+        
+        <h3>Current Features:</h3>
+        <ul>
+            <li>AI-Powered Chat Interface</li>
+            <li>File Search and Preview</li>
+            <li>Screen Capture with OCR</li>
+            <li>Voice Control (Wake Word: "Hey Maya")</li>
+            <li>To-Do List with Reminders</li>
+            <li>Accessibility Features (Screen Reader, Text Size)</li>
+            <li>Web Search</li>
+            <li>Terminal Access</li>
+        </ul>
+        
+        <h3>Planned Features:</h3>
+        <ul>
+            <li>VS Code Integration</li>
+            <li>Enhanced File Management</li>
+            <li>Code Generation and Analysis</li>
+            <li>Customizable Themes</li>
+            <li>Plugin System</li>
+        </ul>
+        
+        <p>For more details, check our documentation.</p>
+        """
+        msg = QMessageBox(self)
+        msg.setWindowTitle("MAYA AI Features")
+        msg.setTextFormat(Qt.TextFormat.RichText)
+        msg.setText(features_text)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
     
     def show_about(self):
         """Show the about dialog."""

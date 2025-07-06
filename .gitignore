@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+*.log
+count_lines.py
+todos.json
