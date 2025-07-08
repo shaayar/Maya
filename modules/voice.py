@@ -136,11 +136,16 @@ class VoiceAssistant(QObject):
         self.available_voices = [{'id': i, 'name': voice.name, 'gender': 'Male' if 'male' in voice.name.lower() else 'Female'}
                                for i, voice in enumerate(voices)]
         
-        # Set default voice (first male voice if available, otherwise first voice)
-        default_voice = next((v for v in self.available_voices if 'male' in v['name'].lower()), 
-                           self.available_voices[0] if self.available_voices else None)
+        # Try to find a female voice first, then fall back to any available voice
+        default_voice = next(
+            (v for v in self.available_voices if 'female' in v['name'].lower() or v['gender'] == 'Female'),
+            next((v for v in self.available_voices if 'male' in v['name'].lower() or v['gender'] == 'Male'),
+                 self.available_voices[0] if self.available_voices else None)
+        )
+        
         if default_voice:
             self.set_voice(default_voice['id'])
+            self.current_voice_id = default_voice['id']
     
     def get_available_voices(self):
         """Get list of available voices.

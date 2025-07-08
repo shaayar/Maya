@@ -27,6 +27,7 @@ from .file_search_dialog import FileSearchDialog
 from .terminal import TerminalEmulator
 from .screen_manipulation import ScreenCapture
 from .screen_capture_dialog import ScreenCaptureDialog, ScreenCaptureToolbar
+from .vscode_integration import VSCodeIntegration
 
 from .file_manager import FileManager
 from .web_browser import WebBrowser
@@ -76,6 +77,9 @@ class ChatWindow(QMainWindow):
         # Initialize screen capture
         self.screen_capture = ScreenCapture()
         self.last_capture = None
+        
+        # Initialize VS Code integration
+        self.vscode = VSCodeIntegration()
         
         # Set up accessibility
         self.setObjectName("chatWindow")  # For accessibility
@@ -314,6 +318,54 @@ class ChatWindow(QMainWindow):
         # Add Accessibility menu if screen reader is available
         if self.screen_reader:
             self.create_accessibility_menu(menubar)
+        
+        # Add VS Code menu if available
+        if self.vscode.is_available:
+            vscode_menu = menubar.addMenu('&VS Code')
+            vscode_menu.setObjectName("vscodeMenu")
+            
+            # Open File in VS Code
+            open_file_action = QAction('&Open File...', self)
+            open_file_action.triggered.connect(self.open_in_vscode)
+            open_file_action.setShortcut('Ctrl+Shift+O')
+            open_file_action.setObjectName("vscodeOpenFileAction")
+            open_file_action.setToolTip("Open a file in VS Code")
+            vscode_menu.addAction(open_file_action)
+            
+            # Open Folder in VS Code
+            open_folder_action = QAction('Open &Folder...', self)
+            open_folder_action.triggered.connect(self.open_folder_in_vscode)
+            open_folder_action.setObjectName("vscodeOpenFolderAction")
+            open_folder_action.setToolTip("Open a folder in VS Code")
+            vscode_menu.addAction(open_folder_action)
+            
+            # Add separator
+            vscode_menu.addSeparator()
+            
+            # VS Code Command Palette
+            command_palette_action = QAction('Command &Palette', self)
+            command_palette_action.triggered.connect(self.show_vscode_command_palette)
+            command_palette_action.setShortcut('Ctrl+Shift+P')
+            command_palette_action.setObjectName("vscodeCommandPaletteAction")
+            command_palette_action.setToolTip("Show VS Code Command Palette")
+            vscode_menu.addAction(command_palette_action)
+            
+            # Add separator
+            vscode_menu.addSeparator()
+            
+            # Install Extension
+            install_extension_action = QAction('Install &Extension...', self)
+            install_extension_action.triggered.connect(self.install_vscode_extension)
+            install_extension_action.setObjectName("vscodeInstallExtensionAction")
+            install_extension_action.setToolTip("Install a VS Code extension")
+            vscode_menu.addAction(install_extension_action)
+            
+            # List Extensions
+            list_extensions_action = QAction('List &Extensions', self)
+            list_extensions_action.triggered.connect(self.list_vscode_extensions)
+            list_extensions_action.setObjectName("vscodeListExtensionsAction")
+            list_extensions_action.setToolTip("List installed VS Code extensions")
+            vscode_menu.addAction(list_extensions_action)
         
         # Add Help menu
         help_menu = menubar.addMenu('&Help')
@@ -995,12 +1047,96 @@ class ChatWindow(QMainWindow):
     def update_voice_status(self, is_listening):
         """Update the voice status indicator."""
         if is_listening:
-            self.voice_status_label.setPixmap(QPixmap("resources/icons/mic_on.png"))
-            self.voice_status_label.setToolTip("Voice control active")
+            self.voice_status_label.setPixmap(QPixmap("resources/icons/voice_on.png"))
+            self.voice_status_label.setToolTip("Voice control is active")
         else:
-            self.voice_status_label.setPixmap(QPixmap("resources/icons/mic_off.png"))
-            self.voice_status_label.setToolTip("Voice control inactive")
-            self.voice_status_label.setToolTip("Voice control inactive")
+            self.voice_status_label.setPixmap(QPixmap("resources/icons/voice_off.png"))
+            self.voice_status_label.setToolTip("Voice control is inactive")
+    
+    # VS Code Integration Methods
+    def open_in_vscode(self):
+        """Open a file in VS Code."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Open File in VS Code", "", "All Files (*.*)")
+        
+        if file_path:
+            if self.vscode.open_file(file_path):
+                self.statusBar().showMessage(f"Opened {file_path} in VS Code", 3000)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to open file in VS Code")
+    
+    def open_folder_in_vscode(self):
+        """Open a folder in VS Code."""
+        folder_path = QFileDialog.getExistingDirectory(
+            self, "Open Folder in VS Code", "")
+        
+        if folder_path:
+            if self.vscode.open_folder(folder_path):
+                self.statusBar().showMessage(f"Opened {folder_path} in VS Code", 3000)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to open folder in VS Code")
+    
+    def show_vscode_command_palette(self):
+        """Show the VS Code command palette."""
+        if self.vscode.execute_command("workbench.action.quickOpen"):
+            self.statusBar().showMessage("VS Code command palette opened", 2000)
+        else:
+            QMessageBox.warning(self, "Error", "Failed to open VS Code command palette")
+    
+    def install_vscode_extension(self):
+        """Install a VS Code extension."""
+        extension_id, ok = QInputDialog.getText(
+            self, "Install VS Code Extension", 
+            "Enter extension ID (e.g., ms-python.python):")
+        
+        if ok and extension_id:
+            if self.vscode.install_extension(extension_id):
+                QMessageBox.information(self, "Success", 
+                    f"Successfully installed extension: {extension_id}")
+            else:
+                QMessageBox.warning(self, "Error", 
+                    f"Failed to install extension: {extension_id}")
+    
+    def list_vscode_extensions(self):
+        """List installed VS Code extensions."""
+        extensions = self.vscode.list_extensions()
+        
+        if not extensions:
+            QMessageBox.information(self, "VS Code Extensions", 
+                                 "No extensions found or VS Code is not available.")
+            return
+        
+        # Create a dialog to display extensions
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Installed VS Code Extensions")
+        dialog.resize(500, 400)
+        
+        layout = QVBoxLayout()
+        
+        # Add a text area to display extensions
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        
+        # Format extensions as a list
+        extensions_text = "\n".join(
+            f"• {ext['name']} (v{ext['version']})" 
+            for ext in sorted(extensions, key=lambda x: x['name'].lower())
+        )
+        
+        text_edit.setPlainText(extensions_text)
+        
+        # Add a close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        
+        # Add widgets to layout
+        layout.addWidget(QLabel(f"Found {len(extensions)} extensions:"))
+        layout.addWidget(text_edit)
+        layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        
+        dialog.setLayout(layout)
+        dialog.exec()
     
     def toggle_voice_control(self, enabled):
         """Enable or disable voice control."""
