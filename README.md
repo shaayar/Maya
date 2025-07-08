@@ -25,47 +25,12 @@
 ### Prerequisites
 
 - Python 3.8 or higher
-- pip (Python package installer)
+- Tesseract OCR (for text recognition)
+- Microphone (for voice features)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/maya-ai-chatbot.git
-   cd maya-ai-chatbot
-   ```
-
-2. **Create and activate a virtual environment** (recommended)
-   ```bash
-   # On Windows
-   python -m venv venv
-   .\venv\Scripts\activate
-   
-   # On macOS/Linux
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables**
-   - Create a `.env` file in the project root
-   - Add your Groq API key:
-     ```
-     GROQ_API_KEY=your_api_key_here
-     ```
-
-### Resources
-
-MAYA loads all resources (icons, images, etc.) directly from the filesystem. The application looks for resources in the following locations:
-
-- Icons: `resources/icons/`
-  - `mic_on.png` - Microphone icon (active)
-  - `mic_off.png` - Microphone icon (inactive)
-  - `app_icon.png` - Application icon
+#### Using pip (Recommended)
 
 You can customize these icons by replacing the files in the respective directories. The application will automatically detect and use the new files without requiring a rebuild.
 

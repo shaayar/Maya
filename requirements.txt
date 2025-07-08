@@ -1,3 +1,29 @@
+# Core Dependencies
 groq>=0.3.0
 PyQt6>=6.0.0
 python-dotenv>=0.19.0
+
+# Voice and Speech
+pyttsx3>=2.90
+SpeechRecognition>=3.8.1
+pyaudio>=0.2.11  # Required for microphone access
+
+# Screen Capture and Image Processing
+opencv-python>=4.5.3
+numpy>=1.21.0
+Pillow>=8.3.1
+pytesseract>=0.3.8
+
+# Platform Specific
+pywin32>=300; sys_platform == 'win32'  # Windows specific
+pyobjc>=7.3; sys_platform == 'darwin'  # macOS specific
+pycairo>=1.20.0; sys_platform == 'linux'  # Linux specific
+
+# Development Tools
+black>=21.12b0
+flake8>=4.0.1
+pytest>=6.2.5
+
+# Documentation
+sphinx>=4.2.0
+sphinx-rtd-theme>=1.0.0
