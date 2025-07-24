@@ -2,7 +2,7 @@ import os
 import logging
 import sys
 from PyQt6.QtWidgets import (QWidget, QMainWindow, QMenuBar, QMenu, QStatusBar,
-                            QVBoxLayout, QTextBrowser, QTextEdit, QPushButton,
+                            QVBoxLayout, QTextBrowser, QTextEdit, QPushButton, QApplication,
                             QMessageBox, QProgressBar, QHBoxLayout, QFileDialog,
                             QInputDialog, QComboBox, QDialog, QGridLayout, QDockWidget,
                             QLabel, QVBoxLayout, QHBoxLayout, QApplication, QTabWidget)
@@ -28,6 +28,7 @@ from .terminal import TerminalEmulator
 from .screen_manipulation import ScreenCapture
 from .screen_capture_dialog import ScreenCaptureDialog, ScreenCaptureToolbar
 from .vscode_integration import VSCodeIntegration
+from .theme_manager import ThemeManager
 
 from .file_manager import FileManager
 from .web_browser import WebBrowser
@@ -71,7 +72,10 @@ class ChatWindow(QMainWindow):
         self.config = load_config()
         self.screen_reader = screen_reader
         
-        # Initialize instance variables
+        # Initialize theme manager
+        self.theme_manager = ThemeManager(QApplication.instance())
+        
+        # Initialize screen capture variables
         self.api_key = os.getenv('GROQ_API_KEY')  # Get API key from environment
         
         # Initialize screen capture
@@ -137,12 +141,15 @@ class ChatWindow(QMainWindow):
         # Initialize Todo List
         self.todo_list = TodoList()
         
-        # Initialize Voice Assistant
-        self.voice_assistant = VoiceAssistant(wake_word="hey maya")
-        self.voice_assistant.wake_word_detected.connect(self.on_wake_word_detected)
+        # Initialize voice assistant
+        self.voice_assistant = VoiceAssistant()
         self.voice_assistant.speech_recognized.connect(self.on_speech_recognized)
+        self.voice_assistant.wake_word_detected.connect(self.on_wake_word_detected)
         self.voice_assistant.error_occurred.connect(self.on_voice_error)
         self.voice_assistant.listening_changed.connect(self.on_listening_changed)
+        
+        # Set up video for voice mode
+        self._setup_voice_video()
         self.voice_assistant.listen_in_background()
         
         # Create menu bar and status bar
@@ -244,7 +251,7 @@ class ChatWindow(QMainWindow):
         if event.type() == QEvent.Type.FocusIn and self.screen_reader and self.screen_reader.is_enabled():
             widget = QApplication.focusWidget()
             if widget:
-                name = widget.accessibleName() or widget.whatsThis() or widget.toolTip()
+                name = widget.accessibleName() or widget.accessibleDescription() or "No description available"
                 if name:
                     self.screen_reader.speak(name)
         return super().eventFilter(obj, event)
@@ -385,6 +392,41 @@ class ChatWindow(QMainWindow):
         about_action.setObjectName("aboutAction")  # For accessibility
         about_action.setToolTip("About MAYA AI Chatbot")
         help_menu.addAction(about_action)
+        
+        # Settings menu
+        settings_menu = menubar.addMenu("&Settings")
+        
+        # Theme submenu
+        theme_menu = settings_menu.addMenu("&Theme")
+        
+        # Add theme actions
+        light_theme_action = QAction("&Light", self)
+        light_theme_action.triggered.connect(lambda: self.apply_theme("light"))
+        theme_menu.addAction(light_theme_action)
+        
+        dark_theme_action = QAction("&Dark", self)
+        dark_theme_action.triggered.connect(lambda: self.apply_theme("dark"))
+        theme_menu.addAction(dark_theme_action)
+        
+        system_theme_action = QAction("&System", self)
+        system_theme_action.triggered.connect(lambda: self.apply_theme("system"))
+        theme_menu.addAction(system_theme_action)
+        
+        # Add separator
+        settings_menu.addSeparator()
+        
+        # Character settings action
+        char_action = QAction("&Character Settings...", self)
+        char_action.triggered.connect(self.show_character_settings)
+        settings_menu.addAction(char_action)
+        
+        # Add separator
+        settings_menu.addSeparator()
+        
+        # Settings action
+        settings_action = QAction("&Preferences...", self)
+        settings_action.triggered.connect(self.show_settings)
+        settings_menu.addAction(settings_action)
     
     def check_api_key(self) -> bool:
         """
@@ -615,7 +657,7 @@ class ChatWindow(QMainWindow):
         <h2>MAYA AI Chatbot</h2>
         <p>Version 1.0.0</p>
         <p>An intelligent chatbot with accessibility features.</p>
-        <p>© 2025 MAYA AI. All rights reserved.</p>
+        <p> 2025 MAYA AI. All rights reserved.</p>
         """
         QMessageBox.about(self, "About MAYA AI", about_text)
     
@@ -624,7 +666,7 @@ class ChatWindow(QMainWindow):
         Display the settings dialog and handle the result.
         If settings are accepted and API key is valid, (re)initialize the chatbot.
         """
-        dialog = SettingsDialog(self, self.voice_assistant, self.screen_reader)
+        dialog = SettingsDialog(self, self.voice_assistant, self.theme_manager)
         dialog.settings_updated.connect(self.on_settings_updated)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             if self.check_api_key():
@@ -1036,8 +1078,35 @@ class ChatWindow(QMainWindow):
         self.input_box.setPlainText(text)
         self.send_message()
         
+    def _setup_voice_video(self):
+        """Set up the video player for voice mode."""
+        # Look for video file in resources
+        video_extensions = ['.mp4', '.webm', '.mov']
+        video_dir = Path('resources/videos')
+        
+        # Create videos directory if it doesn't exist
+        video_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Try to find a video file
+        video_file = None
+        for ext in video_extensions:
+            for file in video_dir.glob(f'*{ext}'):
+                video_file = str(file)
+                break
+            if video_file:
+                break
+        
+        # If no video file found, create a placeholder
+        if not video_file:
+            print("No video file found in resources/videos/")
+            print("Please add a video file (MP4, WebM, or MOV) to enable video during voice mode.")
+            print(f"Expected location: {video_dir.absolute()}")
+        else:
+            self.voice_assistant.set_video_file(video_file)
+    
     def on_voice_error(self, error_msg):
         """Handle voice assistant errors."""
+        QMessageBox.warning(self, "Voice Error", error_msg)
         self.statusBar().showMessage(error_msg, 5000)
     
     def on_listening_changed(self, is_listening):

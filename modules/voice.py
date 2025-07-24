@@ -6,12 +6,15 @@ Handles speech recognition and text-to-speech functionality.
 import queue
 import threading
 import time
+import os
+from pathlib import Path
 import speech_recognition as sr
 import pyttsx3
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer
+from .character import CharacterSystem, CharacterTrait
 
 class VoiceAssistant(QObject):
-    """Handles voice input/output functionality."""
+    """Handles voice input/output functionality with video support."""
     
     # Signals
     wake_word_detected = pyqtSignal()
@@ -34,8 +37,20 @@ class VoiceAssistant(QObject):
         self.is_listening = False
         self.stop_listening = threading.Event()
         self.voice_thread = None
+        
+        # Voice and character settings
         self.available_voices = []
         self.current_voice_id = 0
+        self.character_system = CharacterSystem()
+        self.response_mode = "text"  # 'text' or 'voice'
+        self.anime_voice_enabled = False
+        
+        # Video player attributes
+        self.video_player = None
+        self.video_file = None
+        self.video_visible = False
+        self.video_timer = QTimer()
+        self.video_timer.timeout.connect(self._check_video_status)
         
         # Initialize voices
         self._init_voices()
@@ -48,17 +63,124 @@ class VoiceAssistant(QObject):
         with self.microphone as source:
             self.recognizer.adjust_for_ambient_noise(source, duration=1)
     
+    def set_video_file(self, file_path):
+        """Set the video file to play during voice mode.
+        
+        Args:
+            file_path (str): Path to the video file.
+        """
+        if os.path.exists(file_path):
+            self.video_file = file_path
+            if self.video_player:
+                self.video_player.set_video_file(file_path)
+            return True
+        return False
+    
+    def _init_video_player(self):
+        """Initialize the video player if not already created."""
+        if not self.video_player:
+            from .video_player import VideoPlayer
+            self.video_player = VideoPlayer()
+            if self.video_file:
+                self.video_player.set_video_file(self.video_file)
+    
+    def _show_video(self):
+        """Show the video player and start playback."""
+        if not self.video_visible and self.video_file:
+            self._init_video_player()
+            self.video_player.show()
+            self.video_player.play()
+            self.video_visible = True
+            # Start timer to check video status
+            self.video_timer.start(1000)  # Check every second
+    
+    def _hide_video(self):
+        """Hide the video player and stop playback."""
+        if self.video_visible and self.video_player:
+            self.video_player.stop()
+            self.video_player.hide()
+            self.video_visible = False
+            self.video_timer.stop()
+    
+    def _check_video_status(self):
+        """Check if video playback has finished and hide if needed."""
+        if self.video_player and not self.video_player.media_player.isPlaying():
+            self._hide_video()
+    
+    def set_response_mode(self, mode: str):
+        """Set the response mode ('text' or 'voice')."""
+        if mode in ["text", "voice"]:
+            self.response_mode = mode
+            return True
+        return False
+    
+    def set_anime_voice(self, enabled: bool):
+        """Enable or disable anime voice mode."""
+        self.anime_voice_enabled = enabled
+        if enabled and not self.character_system.get_current_trait():
+            # Set default trait if none selected
+            self.character_system.set_character_trait("tsundere")
+        self._apply_voice_settings()
+    
+    def set_character_trait(self, trait_name: str) -> bool:
+        """Set the current character trait."""
+        success = self.character_system.set_character_trait(trait_name)
+        if success:
+            self._apply_voice_settings()
+        return success
+    
+    def _apply_voice_settings(self):
+        """Apply current voice settings to the TTS engine."""
+        if not self.anime_voice_enabled:
+            # Reset to default voice settings
+            self.engine.setProperty('rate', 150)
+            self.engine.setProperty('volume', 1.0)
+            if self.available_voices and self.current_voice_id < len(self.available_voices):
+                self.engine.setProperty('voice', self.available_voices[self.current_voice_id].id)
+            return
+        
+        # Apply anime character voice settings
+        trait = self.character_system.get_current_trait()
+        if trait:
+            # Base rate is 150, apply modifier (-50% to +50%)
+            rate = 150 * (1.0 + (trait.speed_modifier - 1.0) * 0.5)
+            self.engine.setProperty('rate', int(rate))
+            
+            # Adjust pitch (if supported by the TTS engine)
+            try:
+                # This is engine-specific and might not work with all TTS engines
+                self.engine.setProperty('pitch', 1.0 + trait.pitch_modifier)
+            except:
+                pass  # Pitch adjustment not supported
+    
     def speak(self, text):
-        """Convert text to speech.
+        """Convert text to speech and show video if available.
         
         Args:
             text (str): The text to speak.
         """
         try:
-            self.engine.say(text)
-            self.engine.runAndWait()
+            # Format text based on character traits if in anime mode
+            if self.anime_voice_enabled:
+                text = self.character_system.format_response(text)
+            
+            # Only speak if in voice mode
+            if self.response_mode == "voice":
+                # Show video when speaking starts
+                self._show_video()
+                
+                # Speak the text
+                self.engine.say(text)
+                self.engine.runAndWait()
+                
+                # Schedule video to hide after a short delay
+                QTimer.singleShot(2000, self._hide_video)
+            
+            return text
+            
         except Exception as e:
             self.error_occurred.emit(f"Error in text-to-speech: {str(e)}")
+            self._hide_video()
     
     def listen_in_background(self):
         """Start listening for the wake word in a background thread."""

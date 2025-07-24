@@ -28,11 +28,73 @@
 - Tesseract OCR (for text recognition)
 - Microphone (for voice features)
 
-### Installation
+## 🐳 Docker Installation (Recommended)
 
-#### Using pip (Recommended)
+### Prerequisites
+- Docker and Docker Compose installed
+- X11 server (for GUI on Linux/Windows/macOS)
+- Audio system (for voice features)
 
-You can customize these icons by replacing the files in the respective directories. The application will automatically detect and use the new files without requiring a rebuild.
+### Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/maya-chatbot.git
+   cd maya-chatbot
+   ```
+
+2. Build and run with Docker Compose:
+   ```bash
+   # Allow local connections to X server (Linux/macOS)
+   xhost +local:docker
+   
+   # Build and start the container
+   docker-compose up --build
+   ```
+
+3. On first run, the application will create necessary configuration files in the mounted volumes.
+
+### Windows Users
+
+1. Install X11 server (e.g., VcXsrv or X410)
+2. Run these commands in PowerShell:
+   ```powershell
+   # Allow connections from Docker
+   Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Ranges" -Name "172.16.0.0" -Type DWord -Value 0x21
+   
+   # Set display environment variable (update IP if needed)
+   $env:DISPLAY = "host.docker.internal:0.0"
+   
+   # Build and run
+   docker-compose up --build
+   ```
+
+### Volume Mounts
+- `./resources` - Application resources (themes, icons, etc.)
+- `maya-config` - Persistent configuration (Docker volume)
+- `maya-data` - Application data (Docker volume)
+
+## 🚀 Manual Installation
+
+### Prerequisites
+- Python 3.8 or higher
+- Tesseract OCR (for text recognition)
+- PortAudio (for voice features)
+- System dependencies (see Dockerfile for reference)
+
+### Using pip
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/maya-chatbot.git
+cd maya-chatbot
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ### Running the Application
 
@@ -40,7 +102,24 @@ You can customize these icons by replacing the files in the respective directori
 python main.py
 ```
 
-## 🛠️ Configuration
+## 🔧 Configuration
+
+### Docker Configuration
+
+Edit `docker-compose.yml` to customize:
+- Volume mounts
+- Environment variables
+- Device passthrough (for audio/video)
+
+Example environment variables:
+```yaml
+environment:
+  - DISPLAY=${DISPLAY}
+  - PYTHONUNBUFFERED=1
+  - ENABLE_VOICE=true
+```
+
+### Application Configuration
 
 Edit the `config.json` file to customize application settings. Here's the default configuration with all available options:
 
@@ -66,6 +145,30 @@ Edit the `config.json` file to customize application settings. Here's the defaul
 - `max_messages`: Maximum number of messages to keep in conversation history (default: 20)
 - `temperature`: Controls randomness in AI responses (0.0 to 1.0, default: 0.7)
 - `messages`: List of system messages that define the AI's behavior and personality
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### No Display in Docker
+```bash
+# On Linux/macOS
+export DISPLAY=:0
+xhost +local:docker
+
+# On Windows
+# Make sure X server is running and accessible
+```
+
+#### Audio Not Working
+- Ensure PulseAudio is running (Linux)
+- Check Docker has access to audio devices
+- Verify volume levels and default audio device
+
+#### Performance Issues
+- Allocate more resources to Docker
+- Disable unused features in settings
+- Check system resource usage
 
 ## 📝 To-Do List Features
 
