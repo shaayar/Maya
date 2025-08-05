@@ -1,6 +1,7 @@
 import os
 import logging
 import sys
+from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMainWindow, QMenuBar, QMenu, QStatusBar,
                             QVBoxLayout, QTextBrowser, QTextEdit, QPushButton, QApplication,
                             QMessageBox, QProgressBar, QHBoxLayout, QFileDialog,
@@ -11,8 +12,9 @@ from PyQt6.QtGui import (QDesktopServices, QAction, QIcon, QPixmap, QKeySequence
                         QKeyEvent, QTextCursor)
 from typing import Optional, Tuple, Dict, Any, List, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .screen_reader import ScreenReader
+# Screen reader feature is currently disabled but kept for future reference
+# if TYPE_CHECKING:
+#     from .screen_reader import ScreenReader
 
 # Local imports
 from .file_manager import FileManager
@@ -63,14 +65,15 @@ class CustomTextEdit(QTextEdit):
 class ChatWindow(QMainWindow):
     """Main chat window UI."""
     
-    def __init__(self, parent=None, screen_reader: Optional['ScreenReader'] = None):
+    def __init__(self, parent=None, screen_reader=None):  # screen_reader: Optional['ScreenReader'] = None
         super().__init__(parent)
         self.chatbot = None
         self.file_manager = FileManager()
         self.web_browser = WebBrowser()
         self.current_file = None
         self.config = load_config()
-        self.screen_reader = screen_reader
+        # Screen reader feature is currently disabled but kept for future reference
+        self.screen_reader = None  # screen_reader
         
         # Initialize theme manager
         self.theme_manager = ThemeManager(QApplication.instance())
@@ -427,6 +430,22 @@ class ChatWindow(QMainWindow):
         settings_action = QAction("&Preferences...", self)
         settings_action.triggered.connect(self.show_settings)
         settings_menu.addAction(settings_action)
+    
+    def show_character_settings(self):
+        """Show character settings dialog."""
+        try:
+            # Import here to avoid circular imports
+            from .character import CharacterDialog
+            
+            dialog = CharacterDialog(self)
+            if dialog.exec():
+                # Character settings were saved
+                self.character = dialog.get_character()
+                if hasattr(self, 'apply_character_settings'):
+                    self.apply_character_settings()
+        except Exception as e:
+            logging.error(f"Error showing character settings: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to show character settings: {e}")
     
     def check_api_key(self) -> bool:
         """

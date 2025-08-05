@@ -19,6 +19,7 @@
 - **Voice Commands**: Control the app using voice commands with wake word detection
 - **Customizable AI**: Configure AI model and behavior through settings
 - **Feature Roadmap**: Clear visibility into upcoming features and improvements
+- **Accessibility**: Basic keyboard navigation and text size adjustment (Note: Screen reader support is currently disabled but planned for a future release)
 
 ## 🚀 Quick Start
 

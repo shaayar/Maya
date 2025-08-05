@@ -7,7 +7,8 @@ from PyQt6.QtGui import QIcon, QFontDatabase, QKeySequence
 from PyQt6.QtCore import Qt
 from modules.gui import ChatWindow
 from modules.theme_manager import ThemeManager
-from modules.screen_reader import ScreenReader
+# Screen reader feature is currently disabled but kept for future reference
+# from modules.screen_reader import ScreenReader
 
 def setup_environment():
     """Set up the Python environment and paths."""
@@ -34,7 +35,9 @@ class MayaApplication(QApplication):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.screen_reader = ScreenReader()
+        # Screen reader feature is currently disabled but kept for future reference
+        # self.screen_reader = ScreenReader()
+        self.screen_reader = None
         self.theme_manager = None
         
     def set_theme_manager(self, theme_manager):
@@ -62,8 +65,11 @@ def main():
     # Load default theme
     theme_manager.load_theme("default")
     
+    # Screen reader feature is currently disabled
+    # screen_reader = app.screen_reader if hasattr(app, 'screen_reader') else None
+    
     # Create and show the main window
-    window = ChatWindow(screen_reader=app.screen_reader)
+    window = ChatWindow()  # screen_reader=screen_reader
     window.show()
     
     # Run the application
