@@ -764,24 +764,11 @@ class ChatWindow(QMainWindow):
         
         try:
             # Display user's message in the chat
-            self.chat_display.append(f"<b>You:</b> {user_input}")
+            self._display_message('user', user_input)
             self.input_box.clear()  # Clear input field
             
-            # Disable send button and show progress bar
-            self.send_button.setEnabled(False)
-            self.progress_bar.setVisible(True)
-            
-            # Process the message (this might take some time)
-            QCoreApplication.processEvents()  # Update UI
-            
-            # Get and display the AI's response
-            response = self.chatbot.get_response(user_input)
-            self.chat_display.append(f"<b>Maya:</b> {response}")
-            
-            # Auto-scroll to the latest message
-            self.chat_display.verticalScrollBar().setValue(
-                self.chat_display.verticalScrollBar().maximum()
-            )
+            # Send message using MCP client with streaming response
+            self._send_mcp_message(user_input)
             
         except Exception as e:
             # Show error in status bar and message box
@@ -797,89 +784,31 @@ class ChatWindow(QMainWindow):
             self.send_button.setEnabled(True)
             self.progress_bar.setVisible(False)
             self.input_box.setFocus()  # Return focus to input field
-    
-    def save_chat(self):
-        """
-        Save the current chat conversation to a text file.
-        Prompts the user to choose a save location and handles file operations.
-        """
-        # Check if there's any content to save
-        if not self.chat_display.toPlainText().strip():
-            QMessageBox.warning(
-                self,
-                "Empty Chat",
-                "No chat content to save."
-            )
-            return
-        
-        # Show file save dialog
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,  # Parent window
-            "Save Chat",  # Dialog title
-            "",  # Start directory (empty for default)
-            "Text Files (*.txt);;All Files (*)"  # File filters
-        )
-        
-        # If user selected a file path
-        if file_path:
-            try:
-                # Ensure .txt extension if not provided
-                if not file_path.lower().endswith('.txt'):
-                    file_path += '.txt'
-                
-                # Write chat content to file
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(self.chat_display.toPlainText())
-                
-                # Confirm save to user
-                self.statusBar().showMessage(f"Chat saved to {file_path}")
-                
-            except Exception as e:
-                # Handle file operation errors
-                error_msg = f"Failed to save chat: {str(e)}"
-                QMessageBox.critical(self, "Error", error_msg)
-    
-    def open_file(self):
-        """
-        Open and display a chat file in the chat window.
-        Supports plain text files and preserves formatting.
-        """
-        # Show file open dialog
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,  # Parent window
-            "Open Chat File",  # Dialog title
-            "",  # Start directory (empty for default)
-            "Text Files (*.txt);;All Files (*)"  # File filters
-        )
-        
-        # If user selected a file
-        if file_path:
-            try:
-                # Read file content with UTF-8 encoding
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # Display file content in chat display
-                self.chat_display.setPlainText(content)
-                
-                # Update status bar
-                self.statusBar().showMessage(f"Opened {file_path}")
-                
-            except Exception as e:
-                # Handle file operation errors
-                error_msg = f"Failed to open file: {str(e)}"
-                QMessageBox.critical(self, "Error", error_msg)
 
-    # Screen Capture Methods
-    def capture_full_screen(self):
-        """Capture the entire screen."""
-        try:
-            self.last_capture = self.screen_capture.capture_screen()
-            if self.last_capture:
-                self.show_capture_result(self.last_capture)
-        except Exception as e:
-            QMessageBox.critical(self, "Capture Error", f"Failed to capture screen: {str(e)}")
-            logger.error(f"Screen capture failed: {str(e)}")
+    def _display_message_start(self, role: str):
+        """
+        Start displaying a message in the chat display.
+        
+        Args:
+            role: 'user', 'assistant', or 'error'
+        """
+        # Add timestamp
+        timestamp = time.strftime('%H:%M:%S')
+        
+        # Create message container
+        html = f'''
+        <div class="message-container">
+            <div class="message-timestamp">{timestamp}</div>
+            <div class="{role}-message">
+        '''
+        
+        # Append to chat display
+        self.chat_document.setHtml(self.chat_document.toHtml() + html)
+        
+        # Scroll to bottom
+        self.chat_display.verticalScrollBar().setValue(
+            self.chat_display.verticalScrollBar().maximum()
+        )
     
     def capture_region(self):
         """Open region selection dialog for screen capture."""

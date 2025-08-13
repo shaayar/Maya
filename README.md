@@ -18,6 +18,7 @@
 - **To-Do List**: Integrated task management with categories, priorities, and reminders
 - **Voice Commands**: Control the app using voice commands with wake word detection
 - **Customizable AI**: Configure AI model and behavior through settings
+- **Model Control Protocol (MCP)**: Connect to MCP-compatible AI models for enhanced capabilities
 - **Feature Roadmap**: Clear visibility into upcoming features and improvements
 - **Accessibility**: Basic keyboard navigation and text size adjustment (Note: Screen reader support is currently disabled but planned for a future release)
 
@@ -74,6 +75,35 @@
 - `./resources` - Application resources (themes, icons, etc.)
 - `maya-config` - Persistent configuration (Docker volume)
 - `maya-data` - Application data (Docker volume)
+
+## 🔌 MCP Integration
+
+MAYA supports integration with Model Control Protocol (MCP) compatible AI models. This allows you to connect to various AI providers and leverage their capabilities directly within the application.
+
+### Configuration
+
+1. Open the settings dialog (⚙️) and navigate to the "MCP" tab
+2. Configure the following settings:
+   - **MCP Endpoint**: URL of your MCP-compatible server (e.g., `http://localhost:8000`)
+   - **API Key**: Your authentication token (if required)
+   - **Default Model**: Preferred model to use for responses
+   - **Temperature**: Controls randomness in responses (0.0 to 1.0)
+   - **Max Tokens**: Maximum length of generated responses
+
+### Usage
+
+1. Ensure your MCP server is running and accessible
+2. Configure the MCP settings as described above
+3. Start a new chat or continue an existing one
+4. Your messages will be sent to the configured MCP endpoint
+5. Responses will be streamed in real-time as they're generated
+
+### Troubleshooting
+
+- **Connection Issues**: Verify the MCP endpoint URL and ensure the server is running
+- **Authentication Errors**: Double-check your API key and permissions
+- **Slow Responses**: Try reducing the max tokens or check server load
+- **Formatting Issues**: Ensure your MCP server follows the expected response format
 
 ## 🚀 Manual Installation
 
