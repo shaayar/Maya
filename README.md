@@ -22,8 +22,6 @@
 - **Feature Roadmap**: Clear visibility into upcoming features and improvements
 - **Accessibility**: Basic keyboard navigation and text size adjustment (Note: Screen reader support is currently disabled but planned for a future release)
 
-## 🚀 Quick Start
-
 ### Prerequisites
 
 - Python 3.8 or higher
@@ -254,24 +252,67 @@ MAYA supports voice interaction with the following features:
 
 For a complete list of features, planned enhancements, and the development roadmap, check out our [Feature Roadmap](FEATURES.md).
 
-### Project Structure
+## 🏗️ Project Structure
 
 ```
-maya-ai-chatbot/
-├── modules/               # Application modules
+Maya/
+│
+├── maya_web_interface/       # Web interface components
+│   ├── static/              # Static files (CSS, JS, images)
+│   │   ├── css/            
+│   │   │   ├── src/        # Source CSS with Tailwind directives
+│   │   │   │   └── styles.css
+│   │   │   └── styles.css  # Compiled CSS output
+│   │   │
+│   │   ├── js/             # JavaScript files
+│   │   │   ├── app.js      # Main application logic
+│   │   │   ├── api.js      # API communication
+│   │   │   └── animations.js # GSAP animations
+│   │   │
+│   │   └── icons/          # Application icons
+│   │
+│   ├── templates/          # HTML templates
+│   │   ├── index.html      # Main application interface
+│   │   ├── 404.html        # 404 error page
+│   │   └── 500.html        # 500 error page
+│   │
+│   ├── __init__.py         # Package initialization
+│   ├── app.py              # Flask application
+│   └── server.py           # Server configuration
+│
+├── modules/                # Core application modules
 │   ├── __init__.py
-│   ├── chatbot.py         # Chatbot logic
-│   ├── config.py          # Configuration loader
-│   ├── gui.py             # Main GUI application
-│   ├── settings_dialog.py # Settings UI
-│   └── styles.py          # UI styles and themes
-├── resources/             # Application resources (icons, etc.)
-│   └── icons/             # Application icons
-├── .env                   # Environment variables
-├── config.json            # Application configuration
-├── main.py                # Entry point
-└── requirements.txt       # Dependencies
+│   ├── todo_manager.py     # To-do list functionality
+│   ├── voice_assistant.py  # Voice command processing
+│   ├── mcp_client.py       # Model Control Protocol client
+│   └── mcp_settings.py     # MCP configuration
+│
+├── resources/              # Application resources
+│   ├── icons/             # Application icons
+│   ├── sounds/            # Sound effects
+│   └── themes/            # UI themes
+│
+├── tests/                  # Test files
+│   └── test_todo.py       # Unit tests
+│
+├── .gitignore             # Git ignore rules
+├── README.md              # This file
+├── package.json           # Node.js dependencies
+├── package-lock.json      # Lock file for npm
+├── postcss.config.cjs     # PostCSS configuration
+├── tailwind.config.js     # Tailwind CSS configuration
+├── requirements.txt       # Python dependencies
+└── Dockerfile             # Docker configuration
 ```
+
+### Key Files
+
+- `maya_web_interface/app.py`: Main Flask application entry point
+- `maya_web_interface/static/js/app.js`: Frontend application logic
+- `maya_web_interface/static/css/src/styles.css`: Source CSS with Tailwind directives
+- `tailwind.config.js`: Tailwind CSS configuration with custom theme
+- `postcss.config.cjs`: PostCSS configuration for processing CSS
+- `package.json`: Node.js project configuration and scripts
 
 ### Customization
 

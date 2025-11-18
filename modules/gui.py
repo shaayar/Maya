@@ -717,13 +717,117 @@ class ChatWindow(QMainWindow):
             error_msg = f"Failed to initialize chatbot: {str(e)}"
             QMessageBox.critical(self, "Error", error_msg)
     
+    def save_chat(self):
+        """
+        Save the current chat history to a file.
+        """
+        try:
+            # Get the text from the chat display
+            text = self.chat_document.toPlainText()
+            
+            if not text.strip():
+                QMessageBox.information(self, "Save Chat", "No chat history to save.")
+                return
+                
+            # Get save file path
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Chat",
+                "",
+                "Text Files (*.txt);;All Files (*)",
+                options=QFileDialog.Option.DontUseNativeDialog
+            )
+            
+            if file_path:
+                # Ensure .txt extension
+                if not file_path.lower().endswith('.txt'):
+                    file_path += '.txt'
+                
+                # Write chat to file
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(text)
+                
+                QMessageBox.information(self, "Success", f"Chat saved to:\n{file_path}")
+                
+        except Exception as e:
+            logging.error(f"Error saving chat: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to save chat:\n{str(e)}")
+            
+    def open_file(self):
+        """
+        Open a saved chat file and load its contents into the chat display.
+        """
+        try:
+            # Ask user to confirm before clearing current chat
+            if self.chat_document.characterCount() > 1:  # More than just the initial greeting
+                reply = QMessageBox.question(
+                    self,
+                    'Open File',
+                    'This will clear the current chat. Continue?',
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                
+                if reply == QMessageBox.StandardButton.No:
+                    return
+            
+            # Get file to open
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Open Chat File",
+                "",
+                "Text Files (*.txt);;All Files (*)",
+                options=QFileDialog.Option.DontUseNativeDialog
+            )
+            
+            if file_path:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    
+                if not content:
+                    QMessageBox.warning(self, "Empty File", "The selected file is empty.")
+                    return
+                
+                # Clear current chat and load new content
+                self.chat_document.clear()
+                self.chat_display.setHtml(content)
+                
+                # Scroll to bottom
+                self.chat_display.verticalScrollBar().setValue(
+                    self.chat_document.size().height()
+                )
+                
+                self.statusBar().showMessage(f"Loaded chat from {os.path.basename(file_path)}", 5000)
+                
+        except Exception as e:
+            error_msg = f"Error opening file: {str(e)}"
+            logging.error(error_msg)
+            QMessageBox.critical(self, "Error", error_msg)
+
     def show_greeting(self):
         """
         Display a greeting message with the current time in the chat display.
         The greeting is formatted in bold for better visibility.
         """
-        greeting = get_greeting()  # Get formatted greeting with time
-        self.chat_display.append(f"<b>{greeting}</b>")  # Display in bold
+        from datetime import datetime
+        current_time = datetime.now().strftime("%H:%M")
+        greeting = f"<b>MAYA</b> (at {current_time}): Hello! How can I assist you today?"
+        self._display_message_start("assistant")
+        self.chat_display.append(greeting)
+        self.chat_display.append("")
+        
+        # Add some helpful tips
+        tips = [
+            "<i>Tip: Press Ctrl+Enter to send a message</i>",
+            "<i>Tip: Use the menu or press Ctrl+W to search the web</i>",
+            "<i>Tip: Press Ctrl+O to open a saved chat</i>"
+        ]
+        for tip in tips:
+            self.chat_display.append(tip)
+        
+        self.chat_display.verticalScrollBar().setValue(
+            self.chat_document.size().height()
+        )
     
     def send_message(self):
         """
